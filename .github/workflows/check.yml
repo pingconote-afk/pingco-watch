@@ -3,7 +3,7 @@ name: Ginzan vacancy check
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # 每 10 分鐘（UTC；GitHub 可能延遲幾分鐘）
+    - cron: "*/0 6 * * *"   # 每 10 分鐘（UTC；GitHub 可能延遲幾分鐘）
   workflow_dispatch:          # 可在 Actions 頁面手動執行
     inputs:
       test_email:
