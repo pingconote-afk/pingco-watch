@@ -25,9 +25,10 @@ from pathlib import Path
 
 # ===== 可以自行修改的設定 =====
 START = dt.date(2027, 2, 1)
-END = dt.date(2027, 3, 10)
+END = dt.date(2027, 2, 28)
 PEOPLE = [2, 4]
 ONLY_INNS = []  # 例如 ["能登屋旅館", "ホテル　藤屋"]；空的 = 全部 11 間都通知
+ALWAYS_NOTIFY = True  # True = 每次檢查只要有空房就寄信；False = 同樣的空房只寄一次
 # =============================
 
 BASE = "https://www.nj-yoyaku.net"
@@ -109,12 +110,23 @@ def main() -> None:
     old_keys = {(h["date"], h["people"], tuple(h["inns"])) for h in old}
     new = [h for h in hits if (h["date"], h["people"], tuple(h["inns"])) not in old_keys]
 
-    if new:
+    now = dt.datetime.now(dt.timezone(dt.timedelta(hours=8))).strftime("%m/%d %H:%M")
+    if ALWAYS_NOTIFY and hits:
+        still = [h for h in hits if h not in new]
+        body = f"🎉 銀山溫泉目前有空房！（台灣時間 {now} 確認）\n"
+        if new:
+            body += "\n🆕 新出現：\n" + "\n".join(fmt(h) for h in new) + "\n"
+        if still:
+            body += "\n⏳ 仍有空房（之前通知過）：\n" + "\n".join(fmt(h) for h in still) + "\n"
+        body += "\n空房可能很快被訂走，請盡快自行預約。\n若之後沒再收到這封信，代表這些空房已經沒有了。"
+        tag = "🆕 新空房" if new else "⏳ 仍有空房"
+        send_mail(f"{tag}：銀山溫泉 {len(hits)} 筆（{now}）", body)
+    elif new:
         body = "🎉 銀山溫泉有新的空房！\n\n" + "\n".join(fmt(h) for h in new)
         body += "\n\n空房可能很快被訂走，請盡快自行預約。"
         send_mail(f"🎉 銀山溫泉有空房！（{len(new)} 筆）", body)
     else:
-        print("沒有新的空房，不寄信。")
+        print("沒有需要通知的空房，不寄信。")
 
     STATE_FILE.write_text(json.dumps(hits, ensure_ascii=False, indent=1), "utf-8")
 
