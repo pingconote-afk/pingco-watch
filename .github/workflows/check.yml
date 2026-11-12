@@ -1,0 +1,45 @@
+# 放在 repo 的 .github/workflows/check.yml
+name: Ginzan vacancy check
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # 每 10 分鐘（UTC；GitHub 可能延遲幾分鐘）
+  workflow_dispatch:          # 可在 Actions 頁面手動執行
+    inputs:
+      test_email:
+        description: "只寄測試信（不檢查空房）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write             # 用來存 last_hits.json，避免重複寄信
+
+concurrency:
+  group: ginzan-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check vacancy
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          TEST_EMAIL: ${{ inputs.test_email && '1' || '0' }}
+        run: python check_ginzan.py
+
+      - name: Save state
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add last_hits.json 2>/dev/null || true
+          git diff --cached --quiet || (git commit -m "update last_hits" && git push)
