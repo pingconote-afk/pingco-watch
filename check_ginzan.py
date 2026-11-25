@@ -27,7 +27,7 @@ from html import unescape
 from pathlib import Path
 
 # ===== 可以自行修改的設定 =====
-START = dt.date(2027, 2, 1)
+START = dt.date(2027, 3, 1)
 END = dt.date(2027, 3, 10)
 PEOPLE = [2, 4]
 ONLY_INNS = []  # 例如 ["能登屋旅館", "ホテル　藤屋"]；空的 = 全部 11 間都通知
