@@ -10,7 +10,7 @@
 環境變數（在 GitHub Secrets 設定）：
   GMAIL_USER          寄件的 Gmail 帳號
   GMAIL_APP_PASSWORD  Gmail「應用程式密碼」（16 碼，不是登入密碼）
-  MAIL_TO             收件人（可省略，預設 = GMAIL_USER）
+  MAIL_TO             收件人，可填多個、用逗號分隔（可省略，預設 = GMAIL_USER）
   TEST_EMAIL          設為 1 時只寄一封測試信
 """
 
@@ -103,15 +103,17 @@ def load_state() -> dict:
 def send_mail(subject: str, body: str) -> None:
     user = os.environ["GMAIL_USER"]
     pwd = os.environ["GMAIL_APP_PASSWORD"].replace(" ", "")
-    to = os.environ.get("MAIL_TO") or user
+    # MAIL_TO 可填多個收件人，用逗號分隔，例如 "a@gmail.com, b@gmail.com"
+    raw = os.environ.get("MAIL_TO") or user
+    to_list = [x.strip() for x in re.split(r"[,;\s]+", raw) if x.strip()]
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = user
-    msg["To"] = to
+    msg["To"] = ", ".join(to_list)
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
         s.login(user, pwd)
-        s.sendmail(user, [to], msg.as_string())
-    print(f"已寄出通知到 {to}")
+        s.sendmail(user, to_list, msg.as_string())
+    print(f"已寄出通知給 {len(to_list)} 位收件人")
 
 
 def label(s: dict) -> str:
